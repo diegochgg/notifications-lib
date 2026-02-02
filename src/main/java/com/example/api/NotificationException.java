@@ -6,4 +6,8 @@ public class NotificationException extends Exception {
     super(message);
   }
 
+  public NotificationException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
 }
