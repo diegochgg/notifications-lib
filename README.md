@@ -40,9 +40,12 @@ NotificationMessage message =
                 "Gracias por registrarte"
         );
 
-NotificationResult result = notificationService.notify(message);
-
-System.out.println(result.getMessage());
+try {
+    NotificationResult result = notificationService.notify(message);
+    System.out.println(result.getMessage());
+} catch (NotificationException e) {
+    System.err.println(e.getMessage());
+}
 ```
 
 ## Configuración
@@ -80,7 +83,9 @@ Actualmente se incluye una implementación génerica simulada de un proveedor, s
 
 **NotificationService** : Responsable de orquestar el envío de notificaciones.
 
-- Método principal : void notify(NotificationMessage message)
+- Método principal :
+  NotificationResult notify(NotificationMessage message)
+  **Envía una notificación y puede lanzar NotificationException si el envío falla.**
 
 **NotificationChannel** : Representa un canal de notificación (Email, SMS, Push, etc.).
 
@@ -97,4 +102,13 @@ Buenas prácticas recomendadas para integraciones reales:
 - Usar variables de entorno o gestores de secretos.
 - Evitar logs con información sensible.
 
+## Manejo de errores
+El envío de notificaciones puede fallar por problemas de validación, infraestructura o proveedores externos.  
+En estos casos, la librería lanza una `NotificationException` para que el cliente decida cómo manejar el error.
 
+## Docker
+Este proyecto incluye un Dockerfile para facilitar la ejecución de ejemplos sin necesidad de configurar Java localmente.
+
+```bash
+docker build -t notifications-lib .
+docker run notifications-lib
