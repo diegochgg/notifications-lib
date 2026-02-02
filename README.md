@@ -28,7 +28,7 @@ dependencies {
 
 ## Quick Start
 
-**Ejemplo de uso para envío de una notificación por email**
+**Sync: Ejemplo de uso para envío de una notificación por email**
 
 ```java
 NotificationService notificationService = NotificationServiceBuilder.emailService();
@@ -46,6 +46,34 @@ try {
 } catch (NotificationException e) {
     System.err.println(e.getMessage());
 }
+```
+
+**Async: Ejemplo de uso para envíos de notificación por email por lote**
+```java
+List<NotificationMessage> messages = List.of(
+        new NotificationMessage("a@mail.com", "Hola A", "Mensaje A"),
+        new NotificationMessage("b@mail.com", "Hola B", "Mensaje B"),
+        new NotificationMessage("c@mail.com", "Hola C", "Mensaje C")
+    );
+
+    List<CompletableFuture<Void>> asyncFutures =
+        messages.stream()
+            .map(message ->
+                emailServiceAsync.notifyAsync(message)
+                    .thenAccept(result ->
+                        System.out.println("[ASYNC EMAIL] Sent to " + message.getTo() + ": " + result.getMessage()
+                        )
+                    )
+                    .exceptionally(ex -> {
+                      System.err.println("[ASYNC EMAIL] Error sending to " + message.getTo() + ": " +
+                                         ex.getCause().getMessage()
+                      );
+                      return null;
+                    })
+            )
+            .toList();
+    
+    CompletableFuture.allOf(asyncFutures.toArray(new CompletableFuture[0])).join();
 ```
 
 ## Configuración
@@ -83,9 +111,13 @@ Actualmente se incluye una implementación génerica simulada de un proveedor, s
 
 **NotificationService** : Responsable de orquestar el envío de notificaciones.
 
-- Método principal :
-  NotificationResult notify(NotificationMessage message)
+- Métodos principales :
+
+  `NotificationResult notify(NotificationMessage message)`
   **Envía una notificación y puede lanzar NotificationException si el envío falla.**
+
+  `CompletableFuture<NotificationResult> notifyAsync(NotificationMessage message)`
+  **Envía una notificación de forma asíncrona. Permite construir flujos de envío en lote desde el código cliente.**
 
 **NotificationChannel** : Representa un canal de notificación (Email, SMS, Push, etc.).
 
@@ -105,6 +137,15 @@ Buenas prácticas recomendadas para integraciones reales:
 ## Manejo de errores
 El envío de notificaciones puede fallar por problemas de validación, infraestructura o proveedores externos.  
 En estos casos, la librería lanza una `NotificationException` para que el cliente decida cómo manejar el error.
+
+## Notificaciones Asíncronas
+La librería soporta el envío de notificaciones de forma asíncrona utilizando `CompletableFuture`, 
+permitiendo ejecutar envíos no bloqueantes y en paralelo.
+
+**El servicio expone un método asíncrono que retorna un CompletableFuture:**
+```java
+CompletableFuture<NotificationResult> future = notificationService.notifyAsync(message);
+```
 
 ## Docker
 Este proyecto incluye un Dockerfile para facilitar la ejecución de ejemplos sin necesidad de configurar Java localmente.
